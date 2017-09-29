@@ -166,7 +166,7 @@ java_library(
     srcs = glob(["lcm-java/lcm/**/*.java"]),
     javacopts = [
         # Suppressed until lcm-proj/lcm#159 is fixed.
-        "-extra_checks:off",
+        "-XepDisableAllChecks",
     ],
     deps = [
         "@net_sf_jchart2d_jchart2d//jar",
