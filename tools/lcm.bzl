@@ -122,8 +122,8 @@ def lcm_cc_library(
         lcm_package=lcm_package,
         outs=outs)
 
-    deps = set(kwargs.pop('deps', [])) | ["@lcm//:lcm"]
-    includes = set(kwargs.pop('includes', [])) | ["."]
+    deps = depset(kwargs.pop('deps', [])) | ["@lcm//:lcm"]
+    includes = depset(kwargs.pop('includes', [])) | ["."]
     native.cc_library(
         name=name,
         hdrs=outs,
@@ -160,7 +160,7 @@ def lcm_py_library(
         lcm_package=lcm_package,
         outs=outs)
 
-    imports = set(kwargs.pop('imports', [])) | ["."]
+    imports = depset(kwargs.pop('imports', [])) | ["."]
     native.py_library(
         name=name,
         srcs=outs,
@@ -192,7 +192,7 @@ def lcm_java_library(
         lcm_package=lcm_package,
         outs=outs)
 
-    deps = set(kwargs.pop('deps', [])) | ["@lcm//:lcm-java"]
+    deps = depset(kwargs.pop('deps', [])) | ["@lcm//:lcm-java"]
     native.java_library(
         name=name,
         srcs=outs,
