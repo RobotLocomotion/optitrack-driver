@@ -1,6 +1,6 @@
 # -*- python -*-
 
-# Based on commit c18a30047031e609005a3f6e078185a57ea507ee of
+# Based on commit c90e851365abbc000d64f6ba629831c315274149 of
 # https://github.com/RobotLocomotion/drake/blob/master/tools/skylark/pathutils.bzl
 
 def basename(path):

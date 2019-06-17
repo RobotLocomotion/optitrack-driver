@@ -1,6 +1,6 @@
 # -*- python -*-
 
-# Based on commit 5610805762078a7d1d38e0ab5f959ca9e1891501 of
+# Based on commit 9b1237a7a05ccc1d0f8bc4f22f94aa6d6d88e091 of
 # https://github.com/RobotLocomotion/drake/blob/master/tools/workspace/generate_export_header.bzl
 
 def _make_identifier(s):
@@ -111,4 +111,6 @@ def generate_export_header(
         no_export_macro_name = no_export_macro_name,
         no_export_deprecated_macro_name = no_export_deprecated_macro_name,
         static_define = static_define,
-        **kwargs)
+        **kwargs
+    )
+

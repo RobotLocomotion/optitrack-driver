@@ -1,6 +1,6 @@
 # -*- python -*-
 
-# Based on commit ecd75a5ae89ee8de7e2191d95f1b922f6d1e1878 of
+# Based on commit ba51fb5cb845e97017e802fb2b6c74853cb3d6f0 of
 # https://github.com/RobotLocomotion/drake/blob/master/tools/workspace/lcm/lcm.bzl
 
 load("//tools:pathutils.bzl", "basename", "dirname", "join_paths")
@@ -11,6 +11,7 @@ def _lcm_outs(lcm_srcs, lcm_package, lcm_structs, extension):
     below).  The filenames will use the given extension.
 
     """
+
     # Find and remove the dirname and extension shared by all lcm_srcs.
     # For srcs in the current directory, the dirname will be empty.
     subdir = dirname(lcm_srcs[0])
@@ -27,7 +28,8 @@ def _lcm_outs(lcm_srcs, lcm_package, lcm_structs, extension):
     # got in lcm_srcs, if necessary.
     outs = [
         join_paths(subdir, lcm_package, lcm_struct + extension)
-        for lcm_struct in (lcm_structs or lcm_names)]
+        for lcm_struct in (lcm_structs or lcm_names)
+    ]
 
     # Some languages have extra metadata.
     (extension in [".hpp", ".py", ".java"]) or fail(extension)
@@ -49,12 +51,17 @@ def _lcmgen_impl(ctx):
     # the filename from outs (which we do via ".dirname"), as well as the
     # package-name-derived directory name (which we do via slicing off striplen
     # characters), including the '/' right before it (thus the "+ 1" below).
+
     striplen = len(ctx.attr.lcm_package) + 1
     outpath = ctx.outputs.outs[0].dirname[:-striplen]
 
     if ctx.attr.language == "cc":
-        arguments = ["--cpp", "--use-quotes-for-includes", "--cpp-std=c++11",
-        "--cpp-hpath=" + outpath]
+        arguments = [
+            "--cpp",
+            "--use-quotes-for-includes",
+            "--cpp-std=c++11",
+            "--cpp-hpath=" + outpath,
+        ]
     elif ctx.attr.language == "py":
         arguments = ["--python", "--ppath=" + outpath]
     elif ctx.attr.language == "java":
@@ -65,10 +72,12 @@ def _lcmgen_impl(ctx):
         inputs = ctx.files.lcm_srcs,
         outputs = ctx.outputs.outs,
         arguments = arguments + [
-            lcm_src.path for lcm_src in ctx.files.lcm_srcs],
+            lcm_src.path
+            for lcm_src in ctx.files.lcm_srcs
+        ],
         executable = ctx.executable.lcmgen,
     )
-    return struct()
+    return []
 
 # Create rule to invoke lcm-gen on some lcm_srcs.
 # https://www.bazel.io/versions/master/docs/skylark/rules.html
@@ -119,7 +128,8 @@ def lcm_cc_library(
         language = "cc",
         lcm_srcs = lcm_srcs,
         lcm_package = lcm_package,
-        outs = outs)
+        outs = outs,
+    )
 
     deps = kwargs.pop("deps", [])
     if "@lcm" not in deps:
@@ -134,7 +144,8 @@ def lcm_cc_library(
         hdrs = outs,
         deps = deps,
         includes = includes,
-        **kwargs)
+        **kwargs
+    )
 
     # We report the computed output filenames for use by calling code.
     return struct(hdrs = outs)
@@ -177,7 +188,8 @@ def lcm_py_library(
         language = "py",
         lcm_srcs = lcm_srcs,
         lcm_package = lcm_package,
-        outs = outs)
+        outs = outs,
+    )
 
     if add_current_package_to_imports:
         if "." not in imports:
@@ -187,7 +199,8 @@ def lcm_py_library(
         name = name,
         srcs = outs + extra_srcs,
         imports = imports,
-        **kwargs)
+        **kwargs
+    )
 
 def lcm_java_library(
         name,
@@ -212,7 +225,8 @@ def lcm_java_library(
         language = "java",
         lcm_srcs = lcm_srcs,
         lcm_package = lcm_package,
-        outs = outs)
+        outs = outs,
+    )
 
     deps = kwargs.pop("deps", [])
     if "@lcm//:lcm-java" not in deps:
@@ -222,4 +236,5 @@ def lcm_java_library(
         name = name,
         srcs = outs,
         deps = deps,
-        **kwargs)
+        **kwargs
+    )

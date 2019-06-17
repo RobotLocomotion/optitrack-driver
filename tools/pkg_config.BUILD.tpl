@@ -1,5 +1,6 @@
 # -*- python -*-
-# This file contains rules for the Bazel build system; see https://bazel.build.
+
+# %{topcomment}
 
 licenses(%{licenses})
 
@@ -15,3 +16,5 @@ cc_library(
     linkopts = %{linkopts},
     deps = %{deps},
 )
+
+%{build_epilog}
