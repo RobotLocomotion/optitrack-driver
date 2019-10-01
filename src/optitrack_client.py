@@ -20,7 +20,7 @@ from optitrack import optitrack_rigid_body_description_t
 
 def trace( *args ):
     pass
-    #print "".join(map(str,args))
+    #print("".join(map(str,args)))
 
 # Create structs for reading various object types to speed up parsing.
 Vector3 = struct.Struct( '<fff' )
@@ -187,7 +187,7 @@ class NatNetClient:
         trace( "Begin MoCap Frame\n-----------------\n" )
 
         msg = optitrack_frame_t()
-        msg.utime = time.time() * 1e6
+        msg.utime = int(time.time() * 1e6)
 
         # TODO(sam.creasey) I don't know if this is worth it...
         #data = memoryview( data )
@@ -208,10 +208,10 @@ class NatNetClient:
             marker_set = optitrack_marker_set_t()
             # Model name
             #modelName, separator, remainder = bytes(data[offset:]).partition( b'\0' )
-            modelName = data[offset:].split('\0')[0]
+            modelName = data[offset:].split(b'\0')[0]
             offset += len( modelName ) + 1
             trace( "Model Name:", modelName.decode( 'utf-8' ) )
-            marker_set.name = modelName
+            marker_set.name = modelName.decode()
 
             # Marker count (4 bytes)
             markerCount, = Int32Value.unpack(data[offset:offset + 4])
@@ -349,7 +349,7 @@ class NatNetClient:
         name, separator, remainder = bytes(data[offset:]).partition( b'\0' )
         offset += len( name ) + 1
         trace( "Markerset Name:", name.decode( 'utf-8' ) )
-        description.name = name
+        description.name = name.decode()
 
         markerCount, = Int32Value.unpack(data[offset:offset + 4])
         offset += 4
@@ -359,7 +359,7 @@ class NatNetClient:
             marker_name, separator, remainder = bytes(data[offset:]).partition( b'\0' )
             offset += len( marker_name ) + 1
             trace( "\tMarker Name:", marker_name.decode( 'utf-8' ) )
-            description.marker_names.append(marker_name)
+            description.marker_names.append(marker_name.decode())
 
         return offset, description
 
@@ -373,7 +373,7 @@ class NatNetClient:
             name, separator, remainder = bytes(data[offset:]).partition( b'\0' )
             offset += len( name ) + 1
             trace( "\tRigid Body Name:", name.decode( 'utf-8' ) )
-            description.name = name
+            description.name = name.decode()
 
         description.id, = Int32Value.unpack(data[offset:offset + 4])
         offset += 4

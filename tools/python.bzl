@@ -140,6 +140,6 @@ cc_library(
 
 python_repository = repository_rule(
     _impl,
-    attrs = {"version": attr.string(default = "2")},
+    attrs = {"version": attr.string(default = "3")},
     local = True,
 )
