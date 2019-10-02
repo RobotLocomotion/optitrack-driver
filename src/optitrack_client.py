@@ -69,15 +69,18 @@ class NatNetClient:
         result.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         result.bind( ('', port) )
 
-        if self.options.local_address == '':
-            mreq = struct.pack("4sl",
-                               socket.inet_aton(self.options.multicast_address),
-                               socket.INADDR_ANY)
-            result.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-        else:
-            result.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
-                              socket.inet_aton(self.options.multicast_address) +
-                              socket.inet_aton(self.options.local_address))
+        if not self.options.unicast:
+            if self.options.local_address == '':
+                mreq = struct.pack(
+                    "4sl", socket.inet_aton(self.options.multicast_address),
+                    socket.INADDR_ANY)
+                result.setsockopt(
+                    socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+            else:
+                result.setsockopt(
+                    socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
+                    socket.inet_aton(self.options.multicast_address) +
+                    socket.inet_aton(self.options.local_address))
 
         return result
 
@@ -555,6 +558,9 @@ def main():
                         "streaming settings.")
     parser.add_argument('--local-address', default='',
                         help="IP address of the local interface to listen on")
+    parser.add_argument('--unicast', action="store_true",
+                        help="Listen for unicast datagrams (don't join a "
+                        "multicast group")
     args = parser.parse_args()
 
     client = NatNetClient(args)
