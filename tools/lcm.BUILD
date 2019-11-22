@@ -4,6 +4,7 @@
 # Based on commit 758822db27e1d023b81f89b3fd2a7ebcdcb24d9c of
 # https://github.com/RobotLocomotion/drake/blob/master/tools/workspace/lcm/package.BUILD.bazel
 
+load("@rules_python//python:defs.bzl", "py_library")
 load("@//tools:generate_file.bzl", "generate_file")
 load("@//tools:generate_export_header.bzl", "generate_export_header")
 
@@ -13,7 +14,7 @@ package(default_visibility = ["//visibility:public"])
 
 config_setting(
     name = "linux",
-    values = {"cpu": "k8"},
+    constraint_values = ["@platforms//os:linux"],
     visibility = ["//visibility:private"],
 )
 
