@@ -393,6 +393,7 @@ class NatNetClient:
             # TODO (sam.creasey) use this instead of parsing and
             # discarding it.
             markerCount, = Int32Value.unpack(data[offset:offset + 4])
+            trace("\tMarker Count:", markerCount)
             offset += 4
 
             # Each position would be 3 floats.  Skip them.
@@ -400,6 +401,14 @@ class NatNetClient:
 
             # Each marker also has an int32 identifier.
             offset += markerCount * 4;
+
+            if (self.__natNetStreamVersion[0] >= 4):
+                # Skip the names of the markers.
+                for _ in range(markerCount):
+                    name, separator, remainder = bytes(data[offset:]).partition( b'\0' )
+                    offset += len( name ) + 1
+                    trace( "\t\tMarker Name:", name.decode( 'utf-8' ) )
+
 
         return offset, description
 
@@ -416,10 +425,25 @@ class NatNetClient:
 
         rigidBodyCount, = Int32Value.unpack(data[offset:offset + 4])
         offset += 4
+        trace( "\tSkeleton Body Count:", rigidBodyCount, " len ", len(data))
 
         for i in range( 0, rigidBodyCount ):
-            offset += self.__unpackRigidBodyDescription( data[offset:] )
+            offset += self.__unpackRigidBodyDescription( data[offset:] )[0]
 
+        return offset
+
+    def __unpackCameraDescription(self, data):
+        offset = 0
+
+        name, separator, remainder = bytes(data[offset:]).partition( b'\0' )
+        offset += len( name ) + 1
+        trace( "\tCamera Name:", name.decode( 'utf-8' ) )
+
+        # Skip position
+        offset += 12
+
+        # Skip orientation
+        offset += 16
         return offset
 
     # Unpack a data description packet
@@ -444,6 +468,8 @@ class NatNetClient:
                 data_descriptions.rigid_bodies.append(description)
             elif( type == 2 ):
                 offset += self.__unpackSkeletonDescription( data[offset:] )
+            elif( type == 5 ):
+                offset += self.__unpackCameraDescription( data[offset:] )
 
         data_descriptions.num_marker_sets = len(data_descriptions.marker_sets)
         data_descriptions.num_rigid_bodies = len(data_descriptions.rigid_bodies)
