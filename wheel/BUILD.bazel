@@ -1,0 +1,48 @@
+# -*- python -*-
+# This file contains rules for the Bazel build system; see https://bazel.build.
+
+load("//:version.bzl", "VERSION")
+load("@rules_python//python:packaging.bzl", "py_wheel")
+
+licenses(["notice"])
+
+package(default_visibility = ["//visibility:private"])
+
+genrule(
+    name = "_cp_client",
+    srcs = ["//src:optitrack_client.py"],
+    outs = ["optitrack/client.py"],
+    cmd = "cp $< $@",
+)
+
+py_library(
+    name = "client",
+    srcs = [":optitrack/client.py"],
+)
+
+py_wheel(
+    name = "wheel",
+    visibility = ["//visibility:public"],
+    distribution = "optitrack_driver",
+    version = VERSION,
+    summary = "Translates data streamed from the Optitrack Motive software into LCM messages.",
+    requires = [
+        "lcm",
+    ],
+    entry_points = {
+        "console_scripts": [
+            "optitrack_client = optitrack.client:main",
+        ],
+    },
+    deps = [
+        ":client",
+        "//lcmtypes:cxx_srcs",
+        "//lcmtypes:java_srcs",
+        "//lcmtypes:lcm_srcs_with_subdir",
+        "//lcmtypes:py_optitrack_lcmtypes",
+    ],
+    strip_path_prefixes = [
+        "lcmtypes/",
+        "wheel/",
+    ],
+)

@@ -132,6 +132,7 @@ cc_binary(
 cc_binary(
     name = "lcm-gen",
     srcs = [
+        "lcm/lcm_version.h",
         "lcmgen/emit_c.c",
         "lcmgen/emit_cpp.c",
         "lcmgen/emit_csharp.c",
@@ -150,7 +151,6 @@ cc_binary(
     copts = LCM_COPTS,
     includes = ["."],
     deps = [
-        ":lcm",
         "@glib",
     ],
 )
