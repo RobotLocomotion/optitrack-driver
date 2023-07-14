@@ -4,10 +4,20 @@ This repository contains a python application which translates data
 streamed from the Optitrack Motive software (aka NatNet) into LCM
 messages.
 
-To build:
+## To build and run locally:
 
-```bazel build //...```
+```
+bazel run //src:optitrack_client
+```
 
-To run:
+## To build a wheel:
 
-```bazel run //src:optitrack_client```
+```
+bazel build //wheel
+```
+
+Then (within a virtual environment), install the wheel file:
+
+```
+pip install bazel-bin/wheel/optitrack_driver-*-py3-none-any.whl
+```
