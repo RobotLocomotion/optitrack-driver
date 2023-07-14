@@ -20,11 +20,39 @@ LCM_SRCS = [
     "optitrack_skeleton_t.lcm",
 ]
 
+# Also provide the srcs in a package-specific subdir.
+[
+    genrule(
+        name = "_cp_" + x,
+        srcs = [x],
+        outs = ["optitrack/" + x],
+        cmd = "cp $< $@",
+        visibility = ["//visibility:private"],
+    )
+    for x in LCM_SRCS
+]
+
+filegroup(
+    name = "lcm_srcs_with_subdir",
+    srcs = [
+        ":optitrack/" + x
+        for x in LCM_SRCS
+    ],
+)
+
 lcm_cc_library(
     name = "optitrack_lcmtypes",
     lcm_package = "optitrack",
     lcm_srcs = LCM_SRCS,
     linkstatic = 1,
+)
+
+filegroup(
+    name = "cxx_srcs",
+    srcs = [
+        ":optitrack/" + x.replace(".lcm", ".hpp")
+        for x in LCM_SRCS
+    ],
 )
 
 lcm_py_library(
@@ -37,4 +65,12 @@ lcm_java_library(
     name = "lcmtypes_optitrack",
     lcm_package = "optitrack",
     lcm_srcs = LCM_SRCS,
+)
+
+filegroup(
+    name = "java_srcs",
+    srcs = [
+        ":optitrack/" + x.replace(".lcm", ".java")
+        for x in LCM_SRCS
+    ],
 )
