@@ -18,6 +18,8 @@ LCM_SRCS = [
     "optitrack_rigid_body_marker_description_t.lcm",
     "optitrack_skeleton_description_t.lcm",
     "optitrack_skeleton_t.lcm",
+    "optitrack_forceplate_description_t.lcm",
+    "optitrack_forceplate_t.lcm",
 ]
 
 # Also provide the srcs in a package-specific subdir.

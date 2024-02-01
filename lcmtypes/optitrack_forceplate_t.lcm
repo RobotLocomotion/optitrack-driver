@@ -1,0 +1,10 @@
+// This message is derived from the sMarkerSetDescription message
+// contained in the NetNat SDK version 2.10.0
+
+package optitrack;
+
+struct optitrack_forceplate_t {
+  int32_t id;                        // Forceplate identifier
+  float force[3];
+  float moment[3];
+}

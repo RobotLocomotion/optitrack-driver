@@ -10,4 +10,6 @@ struct optitrack_data_descriptions_t {
   optitrack_rigid_body_description_t rigid_bodies[num_rigid_bodies];
   int32_t num_skeletons;
   optitrack_skeleton_description_t skeletons[num_skeletons];
+  int32_t num_forceplates;
+  optitrack_forceplate_description_t forceplates[num_forceplates];
 }

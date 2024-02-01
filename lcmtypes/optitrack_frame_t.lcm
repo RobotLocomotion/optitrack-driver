@@ -17,6 +17,8 @@ struct optitrack_frame_t {
   int32_t num_labeled_markers;                   // # of Labeled Markers
   optitrack_marker_t labeled_markers[num_labeled_markers]; // Labeled Marker data (labeled markers not associated with a "MarkerSet")
   // Skipped force plates
+  int32_t num_forceplates;
+  optitrack_forceplate_t forceplates[num_forceplates];
   float latency;                                // host defined time difference between capture and send, not necessarily frame accurate.
   int64_t timecode;                              // SMPTE timecode (if available)
   int64_t timecode_subframe;                     // timecode sub-frame data

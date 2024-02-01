@@ -20,6 +20,8 @@ from optitrack import optitrack_rigid_body_description_t
 from optitrack import optitrack_rigid_body_marker_description_t
 from optitrack import optitrack_skeleton_t
 from optitrack import optitrack_skeleton_description_t
+from optitrack import optitrack_forceplate_t
+from optitrack import optitrack_forceplate_description_t
 
 def trace( *args ):
     pass
@@ -48,6 +50,12 @@ class NatNetClient:
         self.__natNetStreamVersion = None
 
         self.lc = lcm.LCM()
+
+        # For SDK compatibility reasons, forceplate data streaming is inconsistent.
+        # The incoming message will occasionally contain multiple samples,or 0, for each forceplate.
+        # This class parameter is used to persist readings when an empty sample comes in.
+        # Otherwise, we take the most recent sample.
+        self.forceplates = {}
 
     # Client/server message ids
     NAT_PING                  = 0
@@ -309,6 +317,9 @@ class NatNetClient:
             for i in range( 0, forcePlateCount ):
                 # ID
                 forcePlateID, = Int32Value.unpack(data[offset:offset + 4])
+                # Initialize new found forceplate based on ID
+                if forcePlateID not in self.forceplates:
+                    self.forceplates[forcePlateID] = [0,0,0,0,0,0]
                 offset += 4
                 trace( "Force Plate", i, ":", forcePlateID )
 
@@ -316,15 +327,28 @@ class NatNetClient:
                 forcePlateChannelCount, = Int32Value.unpack(data[offset:offset + 4])
                 offset += 4
 
-                # Channel Data
+                # Channel Data - There will be 6 channels; forces (Fx,Fy,Fz) and moments (Mx,My,Mz)
                 for j in range( 0, forcePlateChannelCount ):
                     trace( "\tChannel", j, ":", forcePlateID )
                     forcePlateChannelFrameCount, = Int32Value.unpack(data[offset:offset + 4])
                     offset += 4
+                    # Frame count determined by Input Divider in the Sync Input Settings of eSync2 in Motive.
+                    # We only care about the last value, as it is the most recent. 
+                    # We continuously update the value until we reach the end. 
                     for k in range( 0, forcePlateChannelFrameCount ):
-                        forcePlateChannelVal, = Int32Value.unpack(data[offset:offset + 4])
+                        forcePlateChannelVal, = FloatValue.unpack(data[offset:offset + 4])
                         offset += 4
                         trace( "\t\t", forcePlateChannelVal )
+                        self.forceplates[forcePlateID][j] = forcePlateChannelVal
+
+        # Apply forceplate data to msg
+        msg.num_forceplates = len(self.forceplates)
+        for f in self.forceplates:
+            fp = optitrack_forceplate_t()
+            fp.id = f
+            fp.force = self.forceplates[f][0:3]
+            fp.moment = self.forceplates[f][3:6]
+            msg.forceplates.append(fp)
 
         # Latency
         msg.latency, = FloatValue.unpack( data[offset:offset+4] )
@@ -451,6 +475,52 @@ class NatNetClient:
 
         return offset, description
 
+    def __unpackForceplateDescription(self, data):
+        description = None
+        offset = 0
+        if (self.__natNetStreamVersion[0] >= 3 ):
+            description = optitrack_forceplate_description_t()
+            # ID
+            description.id, = Int32Value.unpack(data[offset:offset + 4])
+            offset += 4
+
+            # Serial Number
+            serial_number = data[offset:].split(b'\0')[0]
+            offset += len( serial_number ) + 1
+            description.serial_num = serial_number.decode( 'utf-8' )
+
+            # Dimensions - skip
+            offset += 4
+            offset += 4
+
+            # Origin - skip
+            offset += 12
+
+            # Calibration Matrix 12x12 floats - skip
+            for i in range(0,12):
+                offset += (12*4)
+
+            # Corners 4x3 floats
+            # Skip
+            offset += (12*4)
+
+            # Plate Type int - skip
+            offset+=4
+
+            # Channel Data Type int - skip
+            offset+=4
+
+            # Number of Channels int - skip
+            num_channels = int.from_bytes( data[offset:offset+4], byteorder='little' )
+            offset+=4
+
+            # Channel Names list of NoC strings - skip
+            for i in range(0, num_channels):
+                channel_name, separator, remainder = bytes(data[offset:]).partition( b'\0' )
+                offset += len( channel_name ) + 1
+
+        return offset, description
+
     def __unpackCameraDescription(self, data):
         offset = 0
 
@@ -489,12 +559,17 @@ class NatNetClient:
                 count, description = self.__unpackSkeletonDescription( data[offset:] )
                 offset += count
                 data_descriptions.skeletons.append(description)
+            elif( type == 3 ):
+                count, description = self.__unpackForceplateDescription( data[offset:] )
+                offset += count
+                data_descriptions.forceplates.append(description)
             elif( type == 5 ):
                 offset += self.__unpackCameraDescription( data[offset:] )
 
         data_descriptions.num_marker_sets = len(data_descriptions.marker_sets)
         data_descriptions.num_rigid_bodies = len(data_descriptions.rigid_bodies)
         data_descriptions.num_skeletons = len(data_descriptions.skeletons)
+        data_descriptions.num_forceplates = len(data_descriptions.forceplates)
         self.lc.publish('OPTITRACK_DATA_DESCRIPTIONS', data_descriptions.encode())
 
     def __processMessage( self, data ):

@@ -1,0 +1,6 @@
+package optitrack;
+
+struct optitrack_forceplate_description_t {
+  string serial_num;
+  int32_t id;
+}
