@@ -331,15 +331,18 @@ class NatNetClient:
                 for j in range( 0, forcePlateChannelCount ):
                     trace( "\tChannel", j, ":", forcePlateID )
                     forcePlateChannelFrameCount, = Int32Value.unpack(data[offset:offset + 4])
-                    offset += 4
                     # Frame count determined by Input Divider in the Sync Input Settings of eSync2 in Motive.
                     # We only care about the last value, as it is the most recent. 
-                    # We continuously update the value until we reach the end. 
-                    for k in range( 0, forcePlateChannelFrameCount ):
-                        forcePlateChannelVal, = FloatValue.unpack(data[offset:offset + 4])
-                        offset += 4
-                        trace( "\t\t", forcePlateChannelVal )
-                        self.forceplates[forcePlateID][j] = forcePlateChannelVal
+                    # We can avoid the loop and skip to the last value.
+                    # offset += 4
+                    # for k in range( 0, forcePlateChannelFrameCount ):
+                    #     forcePlateChannelVal, = FloatValue.unpack(data[offset:offset + 4])
+                    #     offset += 4
+                    #     trace( "\t\t", forcePlateChannelVal )
+                    offset += 4*forcePlateChannelFrameCount
+                    forcePlateChannelVal, = FloatValue.unpack(data[offset:offset + 4])
+                    self.forceplates[forcePlateID][j] = forcePlateChannelVal
+                    offset += 4
 
         # Apply forceplate data to msg
         msg.num_forceplates = len(self.forceplates)
