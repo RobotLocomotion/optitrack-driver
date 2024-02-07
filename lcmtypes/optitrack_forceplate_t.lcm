@@ -1,5 +1,5 @@
-// This message is derived from the sMarkerSetDescription message
-// contained in the NetNat SDK version 2.10.0
+// This message is derived from the sForcePlateData message
+// contained in the NetNat SDK version 4.0
 
 package optitrack;
 

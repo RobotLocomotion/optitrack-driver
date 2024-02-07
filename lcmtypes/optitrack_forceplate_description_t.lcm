@@ -1,3 +1,6 @@
+// This message is derived from the sForcePlateDescription message
+// contained in the NetNat SDK version 4.0
+
 package optitrack;
 
 struct optitrack_forceplate_description_t {
