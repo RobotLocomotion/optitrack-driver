@@ -178,6 +178,98 @@ class NatNetClient:
 
         return offset, msg
 
+    def __unpack_asset( self, data, asset_num=0):
+        offset = 0
+        trace( "\tAsset        : %d"% (asset_num ))
+        # Asset ID 4 bytes
+        new_id, =  Int32Value.unpack(data[offset:offset + 4])
+        offset += 4
+        trace( "\tAsset ID     : %d"% (new_id ))
+
+        # # of RigidBodies
+        numRBs, =  Int32Value.unpack(data[offset:offset + 4])
+        offset += 4
+        trace( "\tRigid Bodies : %d" % (numRBs))
+        
+        offset1=0
+        for rb_num in range(numRBs):
+            # # of RigidBodies
+            offset1 = self.__unpack_asset_rigid_body_data(data[offset:])
+            offset += offset1
+
+        # # of Markers
+        numMarkers =  Int32Value.unpack(data[offset:offset + 4])
+        offset += 4
+        trace( "\tMarkers      : %d" % (numMarkers))
+        
+        for marker_num in range(numMarkers):
+            # # of Markers
+            offset1 = self.__unpack_asset_marker_data( data[offset:])
+            offset += offset1
+
+        return offset
+
+    def __unpack_asset_rigid_body_data( self, data):
+        offset = 0
+
+        # ID
+        rbID, =  Int32Value.unpack(data[offset:offset + 4])
+        offset += 4
+        trace( "\tID         : %d"% (rbID ))
+
+        # Position: x,y,z
+        pos = Vector3.unpack( data[offset:offset+12] )
+        offset += 12
+        trace( "\tPosition    : [%3.2f, %3.2f, %3.2f]"% (pos[0], pos[1], pos[2] ))
+
+        # Orientation: qx, qy, qz, qw
+        rot = Quaternion.unpack( data[offset:offset+16] )
+        offset += 16
+        trace( "\tOrientation : [%3.2f, %3.2f, %3.2f, %3.2f]"% (rot[0], rot[1], rot[2], rot[3] ))
+
+        # Mean error
+        mean_error, = FloatValue.unpack( data[offset:offset+4] )
+        offset += 4
+        trace( "\tMean Error  : %3.2f"% mean_error )
+
+        # Params
+        marker_params, = struct.unpack( 'h', data[offset:offset+2] )
+        offset += 2
+        trace( "\tParams      :", marker_params )
+
+        trace("unpack_marker_description processed %3.1d bytes"% offset)
+
+        return offset
+
+    def __unpack_asset_marker_data( self, data):
+        offset = 0
+        # ID
+        marker_id =  Int32Value.unpack(data[offset:offset + 4])
+        offset += 4
+        trace( "\tID          : %d"% (marker_id ))
+
+        # Position: x,y,z
+        pos = Vector3.unpack( data[offset:offset+12] )
+        offset += 12
+        trace( "\tPosition    : [%3.2f, %3.2f, %3.2f]"% (pos[0], pos[1], pos[2] ))
+
+        # Size
+        marker_size, = FloatValue.unpack( data[offset:offset+4] )
+        offset += 4
+        trace( "\tMarker Size : %3.2f"% marker_size )
+
+        # Params
+        marker_params, = struct.unpack( 'h', data[offset:offset+2] )
+        offset += 2
+        trace( "\tParams      :", marker_params )
+
+        # Residual
+        residual, = FloatValue.unpack( data[offset:offset+4] )
+        offset += 4
+        trace( "\tResidual    : %3.2f"% residual )
+
+        return offset
+
     # Unpack a skeleton object from a data packet
     def __unpackSkeleton( self, data ):
         offset = 0
@@ -219,6 +311,10 @@ class NatNetClient:
         offset += 4
         trace( "Marker Set Count:", markerSetCount )
         msg.num_marker_sets = markerSetCount
+        if( ( (self.__natNetStreamVersion[0] == 4) and (self.__natNetStreamVersion[1]>0) ) or (self.__natNetStreamVersion[0] > 4)):
+            sizeInBytes = Int32Value.unpack(data[offset:offset + 4])
+            offset += 4
+            trace( "Byte Count: %3.1d"% sizeInBytes )
 
         for i in range( 0, markerSetCount ):
             marker_set = optitrack_marker_set_t()
@@ -246,6 +342,10 @@ class NatNetClient:
         offset += 4
         trace( "Unlabeled Markers Count:", unlabeledMarkersCount )
         msg.num_other_markers = unlabeledMarkersCount
+        if( ( (self.__natNetStreamVersion[0] == 4) and (self.__natNetStreamVersion[1]>0) ) or (self.__natNetStreamVersion[0] > 4)):
+            sizeInBytes = Int32Value.unpack(data[offset:offset + 4])
+            offset += 4
+            trace( "Byte Count: %3.1d"% sizeInBytes )
 
         for i in range( 0, unlabeledMarkersCount ):
             pos = Vector3.unpack( data[offset:offset+12] )
@@ -258,6 +358,10 @@ class NatNetClient:
         offset += 4
         trace( "Rigid Body Count:", rigidBodyCount )
         msg.num_rigid_bodies = rigidBodyCount
+        if( ( (self.__natNetStreamVersion[0] == 4) and (self.__natNetStreamVersion[1]>0) ) or (self.__natNetStreamVersion[0] > 4)):
+            sizeInBytes = Int32Value.unpack(data[offset:offset + 4])
+            offset += 4
+            trace( "Byte Count: %3.1d"% sizeInBytes )
 
         for i in range( 0, rigidBodyCount ):
             (extra_offset, rigid_body_msg) = self.__unpackRigidBody( data[offset:] )
@@ -271,10 +375,31 @@ class NatNetClient:
             msg.num_skeletons = skeletonCount
             offset += 4
             trace( "Skeleton Count:", skeletonCount )
+            if( ( (self.__natNetStreamVersion[0] == 4) and (self.__natNetStreamVersion[1]>0) ) or (self.__natNetStreamVersion[0] > 4)):
+                sizeInBytes = Int32Value.unpack(data[offset:offset + 4])
+                offset += 4
+                trace( "Byte Count: %3.1d"% sizeInBytes )
+
             for i in range( 0, skeletonCount ):
                 (extra_offset, skeleton_msg) = self.__unpackSkeleton( data[offset:] )
                 offset += extra_offset
                 msg.skeletons.append(skeleton_msg)
+
+        # Assets ( Motive 3.1/NatNet 4.1 and greater)
+        assetCount=0
+        if (((self.__natNetStreamVersion[0] == 4) and (self.__natNetStreamVersion[1] > 0)) or (self.__natNetStreamVersion[0] > 4)):
+            assetCount, = Int32Value.unpack(data[offset:offset + 4])
+            offset += 4
+            trace( "Asset Count:", assetCount )
+            if( ( (self.__natNetStreamVersion[0] == 4) and (self.__natNetStreamVersion[1]>0) ) or (self.__natNetStreamVersion[0] > 4)):
+                sizeInBytes = Int32Value.unpack(data[offset:offset + 4])
+                offset += 4
+                trace( "Byte Count: %3.1d"% sizeInBytes )
+
+            # Unpack assets 
+            for i in range( 0, assetCount ):
+                rel_offset = self.__unpack_asset( data[offset:], asset_num )
+                offset += rel_offset
 
         # Labeled markers (Version 2.3 and later)
         labeledMarkerCount = 0
@@ -283,6 +408,10 @@ class NatNetClient:
             offset += 4
             trace( "Labeled Marker Count:", labeledMarkerCount )
             msg.num_labeled_markers = labeledMarkerCount
+            if( ( (self.__natNetStreamVersion[0] == 4) and (self.__natNetStreamVersion[1]>0) ) or (self.__natNetStreamVersion[0] > 4)):
+                sizeInBytes = Int32Value.unpack(data[offset:offset + 4])
+                offset += 4
+                trace( "Byte Count: %3.1d"% sizeInBytes )
 
             for i in range( 0, labeledMarkerCount ):
                 marker = optitrack_marker_t()
@@ -314,6 +443,11 @@ class NatNetClient:
             forcePlateCount, = Int32Value.unpack(data[offset:offset + 4])
             offset += 4
             trace( "Force Plate Count:", forcePlateCount )
+            if( ( (self.__natNetStreamVersion[0] == 4) and (self.__natNetStreamVersion[1]>0) ) or (self.__natNetStreamVersion[0] > 4)):
+                sizeInBytes = Int32Value.unpack(data[offset:offset + 4])
+                offset += 4
+                trace( "Byte Count: %3.1d"% sizeInBytes )
+
             for i in range( 0, forcePlateCount ):
                 # ID
                 forcePlateID, = Int32Value.unpack(data[offset:offset + 4])
@@ -353,9 +487,33 @@ class NatNetClient:
             fp.moment = self.forceplates[f][3:6]
             msg.forceplates.append(fp)
 
-        # Latency
-        msg.latency, = FloatValue.unpack( data[offset:offset+4] )
-        offset += 4
+        # Device data (version 2.11 and later) - Skip
+        if( ( self.__natNetStreamVersion[0] == 2 and self.__natNetStreamVersion[1] >= 11 ) or self.__natNetStreamVersion[0] > 2 ):
+            deviceCount, = Int32Value.unpack(data[offset:offset + 4])
+            offset += 4
+            trace( "Device Count:", deviceCount )
+            if( ( (self.__natNetStreamVersion[0] == 4) and (self.__natNetStreamVersion[1]>0) ) or (self.__natNetStreamVersion[0] > 4)):
+                sizeInBytes = Int32Value.unpack(data[offset:offset + 4])
+                offset += 4
+                trace( "Byte Count: %3.1d"% sizeInBytes )
+
+            for i in range( 0, deviceCount ):
+                # ID - Skip
+                device_id, = Int32Value.unpack(data[offset:offset + 4])
+                offset += 4
+                # Channel Count - Skip
+                device_channel_count, = Int32Value.unpack(data[offset:offset + 4])
+                offset += 4
+
+                trace( "\tDevice %3.1d      ID: %3.1d Num Channels: %3.1d"% (i, device_id, device_channel_count ))
+
+                # Channel Data - Skip
+                for j in range( 0, device_channel_count ):
+                    device_channel_frame_count = Int32Value.unpack(data[offset:offset + 4])
+                    offset += 4
+                    # Device Frame Data - Skip
+                    for k in range( 0, device_channel_frame_count ):
+                        offset += 4
 
         # Timecode
         msg.timecode, = Int32Value.unpack(data[offset:offset + 4])
@@ -370,6 +528,14 @@ class NatNetClient:
         else:
             msg.timestamp, = FloatValue.unpack( data[offset:offset+4] )
             offset += 4
+
+        # Hires Timestamp (Version 3.0 and later) - Skip
+        if ( self.__natNetStreamVersion[0] >= 3 ):
+            offset += 24
+
+        # Precision Timestamp (Version 4.1 and later) (defaults as 0 if N/A) - Skip
+        if (((self.__natNetStreamVersion[0] == 4) and (self.__natNetStreamVersion[1] > 0)) or (self.__natNetStreamVersion[0] > 4)):
+            offset += 8
 
         # Frame parameters
         param, = struct.unpack( 'h', data[offset:offset+2] )
@@ -550,6 +716,9 @@ class NatNetClient:
             type, = Int32Value.unpack(data[offset:offset + 4])
             offset += 4
             trace( "Data type:", type )
+            if( ( (self.__natNetStreamVersion[0] == 4) and (self.__natNetStreamVersion[1]>0) ) or (self.__natNetStreamVersion[0] > 4)):
+                size_in_bytes = Int32Value.unpack(data[offset:offset + 4])
+                offset += 4
             if( type == 0 ):
                 count, description = self.__unpackMarkerSetDescription( data[offset:] )
                 offset += count
