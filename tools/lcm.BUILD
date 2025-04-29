@@ -199,20 +199,36 @@ cc_binary(
 # from the wrong sys.path entry, the RUNPATH no longer works.  To work around
 # that, we pre-load the shared library before calling the upstream __init__,
 # using python ctypes with the realpath to the shared library.
+# generate_file(
+#     name = "gen/lcm/__init__.py",
+#     content = """
+# import ctypes
+# import os.path
+# ctypes.cdll.LoadLibrary(os.path.realpath(__path__[0] + '/_lcm.so'))
+# _filename = __path__[0] + \"/lcm-python/lcm/__init__.py\"
+# with open(_filename) as f:
+#     _code = compile(f.read(), _filename, 'exec')
+#     exec(_code)
+# """,
+#     visibility = ["//visibility:private"],
+# )
+
 generate_file(
-    name = "__init__.py",
+    name = "gen/lcm/__init__.py",
     content = """
 import ctypes
-import os.path
-import six
-ctypes.cdll.LoadLibrary(os.path.realpath(__path__[0] + '/_lcm.so'))
-_filename = __path__[0] + \"/lcm-python/lcm/__init__.py\"
-if six.PY2:
-    execfile(_filename)
-else:
-    with open(_filename) as f:
-        _code = compile(f.read(), _filename, 'exec')
-        exec(_code)
+from pathlib import Path
+# The base_dir refers to the base of our package.BUILD.bazel.
+_base_dir = Path(__path__[0]).resolve().parent.parent
+# Load the native code.
+ctypes.cdll.LoadLibrary(_base_dir / '_lcm.so')
+# We need to tweak the upstream __init__ before we run it.
+_filename = _base_dir / 'lcm-python/lcm/__init__.py'
+_text = _filename.read_text(encoding='utf-8')
+# Respell where the native code comes from.
+_text = _text.replace('from lcm import _lcm', 'import _lcm')
+_text = _text.replace('from lcm._lcm import', 'from _lcm import')
+exec(compile(_text, _filename, 'exec'))
 """,
     visibility = ["//visibility:private"],
 )
@@ -226,7 +242,8 @@ py_library(
 
 py_library(
     name = "lcm-python",
-    srcs = ["__init__.py"],  # Shim, from the genrule above.
+    srcs = ["gen/lcm/__init__.py"],  # Shim, from the genrule above.
+    imports = ["gen"],
     deps = [":lcm-python-upstream"],
 )
 

@@ -53,6 +53,12 @@ def setup_pkg_config_repository(repository_ctx):
         [],
     )
 
+    # Convert the canonical name (e.g., "+_repo_rules+eigen") to its apparent
+    # name (e.g., "eigen") so that when a BUILD file uses a label which omits
+    # the target name (e.g., deps = ["@eigen"]) the unabbreviated label (e.g.,
+    # "@eigen//:eigen") will match what we provide here.
+    library_name = repository_ctx.name.split("+")[-1]
+
     # Check if we can find the required *.pc file of any version.
     result = _run_pkg_config(repository_ctx, args, pkg_config_paths)
     if result.error != None:
@@ -217,7 +223,7 @@ def setup_pkg_config_repository(repository_ctx):
             getattr(repository_ctx.attr, "licenses", []),
         ),
         "%{name}": repr(
-            repository_ctx.name,
+            library_name,
         ),
         "%{srcs}": repr(
             getattr(repository_ctx.attr, "extra_srcs", []),
