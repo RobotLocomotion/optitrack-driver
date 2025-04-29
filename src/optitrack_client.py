@@ -57,6 +57,11 @@ class NatNetClient:
         # Otherwise, we take the most recent sample.
         self.forceplates = {}
 
+        # Cache the data descriptions instead of requesting them
+        # frequently, as doing so causes jitter in the transmitted
+        # frames.
+        self.data_descriptions = None
+
     # Client/server message ids
     NAT_PING                  = 0
     NAT_PINGRESPONSE          = 1
@@ -190,7 +195,7 @@ class NatNetClient:
         numRBs, =  Int32Value.unpack(data[offset:offset + 4])
         offset += 4
         trace( "\tRigid Bodies : %d" % (numRBs))
-        
+
         offset1=0
         for rb_num in range(numRBs):
             # # of RigidBodies
@@ -201,7 +206,7 @@ class NatNetClient:
         numMarkers =  Int32Value.unpack(data[offset:offset + 4])
         offset += 4
         trace( "\tMarkers      : %d" % (numMarkers))
-        
+
         for marker_num in range(numMarkers):
             # # of Markers
             offset1 = self.__unpack_asset_marker_data( data[offset:])
@@ -396,7 +401,7 @@ class NatNetClient:
                 offset += 4
                 trace( "Byte Count: %3.1d"% sizeInBytes )
 
-            # Unpack assets 
+            # Unpack assets
             for i in range( 0, assetCount ):
                 rel_offset = self.__unpack_asset( data[offset:], asset_num )
                 offset += rel_offset
@@ -466,7 +471,7 @@ class NatNetClient:
                     trace( "\tChannel", j, ":", forcePlateID )
                     forcePlateChannelFrameCount, = Int32Value.unpack(data[offset:offset + 4])
                     # Frame count determined by Input Divider in the Sync Input Settings of eSync2 in Motive.
-                    # We only care about the last value, as it is the most recent. 
+                    # We only care about the last value, as it is the most recent.
                     # We can avoid the loop and skip to the last value.
                     # offset += 4
                     # for k in range( 0, forcePlateChannelFrameCount ):
@@ -742,7 +747,7 @@ class NatNetClient:
         data_descriptions.num_rigid_bodies = len(data_descriptions.rigid_bodies)
         data_descriptions.num_skeletons = len(data_descriptions.skeletons)
         data_descriptions.num_forceplates = len(data_descriptions.forceplates)
-        self.lc.publish('OPTITRACK_DATA_DESCRIPTIONS', data_descriptions.encode())
+        self.data_descriptions = data_descriptions
 
     def __processMessage( self, data ):
         trace( "Begin Packet\n------------\n" )
@@ -821,6 +826,12 @@ class NatNetClient:
 
         server_poll_period = 1  # seconds
         last_server_poll = 0
+
+        # At least as of NatNet >= 4, polling the server for
+        # descriptions causes some jitter in the transmitted frames.
+        # Use a lower frequency to avoid perturbing it so much.
+        description_poll_period = 5  # seconds
+        last_description_poll = 0
         while True:
             # Block for input
             rlist, _wlist, _xlist = select.select(
@@ -841,10 +852,29 @@ class NatNetClient:
 
             if (self.serverIPAddress is not None and
                 time.time() > last_server_poll + server_poll_period):
-                self.sendCommand( self.NAT_REQUEST_MODELDEF, "", commandSocket,
-                                  (self.serverIPAddress, self.commandPort) )
-                self.sendCommand( self.NAT_PING, "", commandSocket,
-                                  (self.serverIPAddress, self.commandPort) )
+                # We used to send NAT_PING every time we polled the
+                # server, and in earlier versions of Motive this
+                # didn't seem to have a significant effect.  In Motive
+                # 4, this constant has been renamed to NAT_CONNECT and
+                # it causes lag/jitter in the transmitted frames (and
+                # prints into the motive log that a client is
+                # requesting a connection).  It seems to only be
+                # necessary once in NatNet >= 4.
+                if (self.__natNetStreamVersion is None):
+                    self.sendCommand( self.NAT_PING, "", commandSocket,
+                                      (self.serverIPAddress, self.commandPort) )
+
+                if self.data_descriptions is None:
+                    self.sendCommand( self.NAT_REQUEST_MODELDEF, "", commandSocket,
+                                      (self.serverIPAddress, self.commandPort) )
+                else:
+                    if (time.time() > last_description_poll + description_poll_period):
+                        self.sendCommand( self.NAT_REQUEST_MODELDEF, "", commandSocket,
+                                          (self.serverIPAddress, self.commandPort) )
+                        last_description_poll = time.time()
+
+                    self.lc.publish('OPTITRACK_DATA_DESCRIPTIONS', self.data_descriptions.encode())
+
                 if (self.__natNetStreamVersion is not None and
                     self.__natNetStreamVersion[0] >= 4):
                     self.sendCommand( self.NAT_KEEPALIVE, "", commandSocket,
