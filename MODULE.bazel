@@ -1,32 +1,20 @@
-# This file marks a workspace root for the Bazel build system; see
-# https://bazel.build
-
 module(
     name = "optitrack-driver",
     bazel_compatibility = [">=8.0.0"],
 )
 
-bazel_dep(name = "rules_python", version = "1.0.0")
-bazel_dep(name = "platforms", version = "0.0.10")
+bazel_dep(name = "rules_cc", version = "0.2.10")
+bazel_dep(name = "rules_java", version = "8.16.1")
+bazel_dep(name = "rules_python", version = "1.6.3")
+bazel_dep(name = "platforms", version = "1.0.0")
 
-extensions = use_extension("//:extensions.bzl", "non_module_dependencies")
+# TODO(jwnimmer-tri) Pin to >1.5.1 once there is a newer release tag.
+LCM_VERSION = "4f9f586e9fda1ab2d5e12427386226519f65b6de"
 
-use_repo(extensions,
-         "com_jidesoft_jide_oss",
-         "commons_io",
-         "glib",
-         "net_sf_jchart2d",
-         "org_apache_xmlgraphics_commons",
-         "python",
-         "lcm")
-
-# http_archive = use_repo_rule(
-#     "@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-
-# http_archive(
-#     name = "lcm",
-#     build_file = "//tools:lcm.BUILD",
-#     sha256 = "8ea0076d2f2158fc750fec697b68c6903a9d70ccbe4e3f24240415a13445381f",  # noqa
-#     strip_prefix = "lcm-91ce7a2ae46ad05f8a232f5fe32a06cccbead1c2",
-#     urls = ["https://github.com/lcm-proj/lcm/archive/91ce7a2ae46ad05f8a232f5fe32a06cccbead1c2.tar.gz"],
-# )
+bazel_dep(name = "lcm")
+archive_override(
+    module_name = "lcm",
+    sha256 = "d2de73ea17993d3586eb9559b48ac3e35dd68064ad6abbdd3e0d4081e5b90685",  # noqa
+    strip_prefix = "lcm-{}".format(LCM_VERSION),
+    url = "https://github.com/lcm-proj/lcm/archive/{}.tar.gz".format(LCM_VERSION),
+)
