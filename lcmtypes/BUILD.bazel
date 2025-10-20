@@ -1,11 +1,14 @@
-# -*- python -*-
-# This file contains rules for the Bazel build system; see https://bazel.build.
-
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
 
-load("//tools:lcm.bzl", "lcm_cc_library", "lcm_java_library", "lcm_py_library")
+load("@lcm//lcm-bazel:lcm_cc_library_srcs.bzl", "lcm_cc_library_srcs")
+load("@lcm//lcm-bazel:lcm_java_library_srcs.bzl", "lcm_java_library_srcs")
+load("@lcm//lcm-bazel:lcm_library.bzl", "lcm_library")
+load("@lcm//lcm-bazel:lcm_py_library_srcs.bzl", "lcm_py_library_srcs")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_java//java:java_library.bzl", "java_library")
+load("@rules_python//python:py_library.bzl", "py_library")
 
 LCM_SRCS = [
     "optitrack_data_descriptions_t.lcm",
@@ -22,7 +25,7 @@ LCM_SRCS = [
     "optitrack_forceplate_t.lcm",
 ]
 
-# Also provide the srcs in a package-specific subdir.
+# Copy the srcs in a package-specific subdir.
 [
     genrule(
         name = "_cp_" + x,
@@ -42,37 +45,52 @@ filegroup(
     ],
 )
 
-lcm_cc_library(
-    name = "optitrack_lcmtypes",
+lcm_library(
+    name = "optitrack_lcm_library",
+    srcs = [":lcm_srcs_with_subdir"],
     lcm_package = "optitrack",
-    lcm_srcs = LCM_SRCS,
-    linkstatic = 1,
+)
+
+lcm_cc_library_srcs(
+    name = "optitrack_cc_srcs",
+    src = ":optitrack_lcm_library",
+)
+
+cc_library(
+    name = "optitrack_lcmtypes",
+    srcs = [":optitrack_cc_srcs"],
+    deps = ["@lcm//lcm:lcm-coretypes"],
+    includes = ["."],
 )
 
 filegroup(
     name = "cxx_srcs",
-    srcs = [
-        ":optitrack/" + x.replace(".lcm", ".hpp")
-        for x in LCM_SRCS
-    ],
+    srcs = [":optitrack_cc_srcs"],
 )
 
-lcm_py_library(
+lcm_py_library_srcs(
+    name = "optitrack_py_srcs",
+    src = ":optitrack_lcm_library",
+)
+
+py_library(
     name = "py_optitrack_lcmtypes",
-    lcm_package = "optitrack",
-    lcm_srcs = LCM_SRCS,
+    srcs = [":optitrack_py_srcs"],
+    imports = ["."],
 )
 
-lcm_java_library(
+lcm_java_library_srcs(
+    name = "optitrack_java_srcs",
+    src = ":optitrack_lcm_library",
+)
+
+java_library(
     name = "lcmtypes_optitrack",
-    lcm_package = "optitrack",
-    lcm_srcs = LCM_SRCS,
+    srcs = [":optitrack_java_srcs"],
+    deps = ["@lcm//lcm-java"],
 )
 
 filegroup(
     name = "java_srcs",
-    srcs = [
-        ":optitrack/" + x.replace(".lcm", ".java")
-        for x in LCM_SRCS
-    ],
+    srcs = [":optitrack_java_srcs"],
 )

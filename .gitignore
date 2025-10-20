@@ -1,3 +1,4 @@
+MODULE.bazel.lock
 bazel-bin
 bazel-genfiles
 bazel-optitrack-driver
